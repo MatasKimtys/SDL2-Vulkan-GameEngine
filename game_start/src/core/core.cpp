@@ -1,7 +1,7 @@
 #include "core/core.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine {
+namespace Core {
 
 Core::Core() {
     spdlog::info("Core Initialized");

@@ -1,11 +1,14 @@
 #pragma once
 
-namespace Engine {
+namespace Rendering {
 
 class Renderer {
 public:
     Renderer();
     ~Renderer();
+
+    void initialize();
+    void render();
 };
 
 }

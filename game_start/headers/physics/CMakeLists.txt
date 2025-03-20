@@ -1,5 +1,5 @@
 target_sources(
     Headers 
     PUBLIC 
-    physics.hpp
+    collision_detector.hpp
 )

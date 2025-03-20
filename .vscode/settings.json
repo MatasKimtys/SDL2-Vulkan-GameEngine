@@ -71,6 +71,11 @@
         "xmemory": "cpp",
         "xtr1common": "cpp",
         "xtree": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "*.tcc": "cpp",
+        "cwctype": "cpp",
+        "deque": "cpp",
+        "string_view": "cpp",
+        "queue": "cpp"
     }
 }

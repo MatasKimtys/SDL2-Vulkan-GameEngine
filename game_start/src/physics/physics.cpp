@@ -1,14 +1,7 @@
-#include "physics/physics.hpp"
+#include "physics/collision_detector.hpp"
 #include <spdlog/spdlog.h>
 
-namespace Engine {
+namespace Physics {
 
-Physics::Physics() {
-    spdlog::info("Physics Initialized");
-}
-
-Physics::~Physics() {
-    spdlog::info("Physics Shutdown");
-}
 
 }
