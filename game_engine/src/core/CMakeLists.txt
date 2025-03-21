@@ -1,0 +1,9 @@
+target_sources(GameEngine
+    PUBLIC
+    core.cpp
+    component_manager.cpp
+    entity_manager.cpp
+    system_manager.cpp
+    resource_manager.cpp
+    scene_manager.cpp
+)

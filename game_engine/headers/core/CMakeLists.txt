@@ -1,0 +1,10 @@
+target_sources(
+    GameEngineHeaders 
+    PUBLIC 
+    core.hpp
+    component_manager.hpp
+    entity_manager.hpp
+    system_manager.hpp
+    resource_manager.hpp
+    scene_manager.hpp
+)

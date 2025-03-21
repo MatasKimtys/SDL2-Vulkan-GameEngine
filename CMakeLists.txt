@@ -21,8 +21,19 @@ endif()
 
 add_executable(Game)
 
+include(FetchContent)
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG        v1.14.1
+    SYSTEM
+)
+FetchContent_MakeAvailable(spdlog)
+
 target_sources(Game
     PUBLIC
     version.hpp
 )
-add_subdirectory(game_start)
+
+add_subdirectory(game_engine)
+add_subdirectory(game)
