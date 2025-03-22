@@ -35,5 +35,16 @@ target_sources(Game
     version.hpp
 )
 
+if(WIN32)
+    # Copy the SDL2 DLL to the output directory after build
+    add_custom_command(TARGET Game POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_FILE:SDL2::SDL2>"
+            "$<TARGET_FILE_DIR:Game>"
+        COMMENT "Copying SDL2.dll to the output directory"
+        COMMENT "Copying SDL2.dll to the output directory"
+    )
+ endif()
+
 add_subdirectory(game_engine)
 add_subdirectory(game)

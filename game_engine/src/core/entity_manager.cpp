@@ -24,9 +24,9 @@ void EntityManager::removeEntity(unsigned int id) {
 
 void EntityManager::updateEntities(float deltaTime){
     for (auto& entity : entities) {
-        entity.positionX += entity.velocityX * deltaTime;
-        entity.positionY += entity.velocityY * deltaTime;
-        entity.positionZ += entity.velocityZ * deltaTime;
+        // entity.positionX += entity.velocityX * deltaTime;
+        // entity.positionY += entity.velocityY * deltaTime;
+        // entity.positionZ += entity.velocityZ * deltaTime;
     }
 }
 

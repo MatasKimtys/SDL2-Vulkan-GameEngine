@@ -4,4 +4,7 @@ target_sources(
     GameHeaders 
     PUBLIC 
     game.hpp
+    sdl_wrapper.hpp
 )
+
+target_include_directories(GameHeaders INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

@@ -11,5 +11,6 @@ target_sources(
     PUBLIC 
     game.cpp
     main.cpp
+    sdl_wrapper.cpp
 )
 

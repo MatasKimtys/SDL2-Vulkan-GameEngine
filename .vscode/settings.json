@@ -80,6 +80,9 @@
         "bitset": "cpp",
         "filesystem": "cpp",
         "source_location": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "coroutine": "cpp",
+        "expected": "cpp",
+        "set": "cpp"
     }
 }
