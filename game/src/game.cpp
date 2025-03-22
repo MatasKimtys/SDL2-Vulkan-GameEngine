@@ -3,6 +3,13 @@
 #include <thread>
 #include <iostream>
 
+namespace {
+
+void update(std::chrono::steady_clock::duration elapsedTime) {
+    // Update game logic - physics, AI, game state transitions
+}
+}
+
 namespace Game {
 
 Game::Game() 
@@ -11,35 +18,49 @@ Game::Game()
 
 Game::~Game() {}
 
+void Game::processInput() {
+    // Handle user input - keyboard, mouse, events, etc.
+}
+
+void Game::render() {
+    // Render game here
+}
+
 void Game::run() {
-    using clock = std::chrono::high_resolution_clock;
-    auto previousTime = clock::now();
-    const unsigned int FPS = 165;
-    // Calculate frame delay in microseconds (1 second == 1,000,000 microseconds)
-    const auto frameDelay = std::chrono::microseconds(1000000 / FPS);
-    
+    constexpr unsigned int FPS = 144;
+    // fixedTimeStep is derived from steady_clock's duration (assumed to be in microseconds)
+    constexpr std::chrono::steady_clock::duration fixedTimeStep = std::chrono::steady_clock::duration(100000) / FPS;
+    std::chrono::steady_clock::duration accumulator {0};
+    auto currentTime = std::chrono::steady_clock::now();
+
+    // FPS Counter variables
+    unsigned int frameCount = 0;
+    auto lastFpsTime = currentTime;
+
     while (isRunning) {
-        // Mark the start of loop work
-        auto loopStart = clock::now();
-        
-        // Calculate elapsed time since last frame in microseconds
-        auto currentTime = clock::now();
-        auto elapsedTime = std::chrono::duration_cast<std::chrono::microseconds>(currentTime - previousTime);
-        previousTime = currentTime;
-        
-        // processInput();
-        // update(elapsedTime);  // Pass microseconds directly to update
-        // render();
-        
-        // Calculate how long the loop work took
-        auto workTime = std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - loopStart);
-        
-        // If the work completed faster than the frame delay, sleep for the remaining time
-        if (workTime < frameDelay) {
-            std::this_thread::sleep_for(frameDelay - workTime);
+        auto newTime = std::chrono::steady_clock::now();
+        auto frameTime = newTime - currentTime;
+        currentTime = newTime;
+        accumulator += frameTime;
+        frameCount++; // Increment frame counter
+
+        while (accumulator >= fixedTimeStep) {
+            processInput();
+            update(fixedTimeStep);
+            accumulator -= fixedTimeStep;
         }
-        // print fps
-        std::cout << "FPS: " << 1000000 / std::chrono::duration_cast<std::chrono::microseconds>(clock::now() - loopStart).count() << std::endl;
+        render();
+
+        // Check if one second has elapsed and print the FPS
+        auto elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(newTime - lastFpsTime);
+        if (elapsedTime.count() >= 1000) {
+            std::cout << "FPS: " << frameCount << std::endl;
+            frameCount = 0;
+            lastFpsTime = newTime;
+        }
+
+        // Optional: add a small sleep to avoid maxing out CPU
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 

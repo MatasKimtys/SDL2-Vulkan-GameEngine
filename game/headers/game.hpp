@@ -1,4 +1,5 @@
 #pragma once
+#include <chrono>
 
 namespace Game {
 class Game {
@@ -10,6 +11,8 @@ public:
     ~Game();
 
     void run();
+    void processInput();
+    void render();
 };
 
 }
