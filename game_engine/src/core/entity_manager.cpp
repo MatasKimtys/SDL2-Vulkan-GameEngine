@@ -13,4 +13,29 @@ EntityManager::~EntityManager() {
     entityLogger.debug("Entity Manager Shutdown");
 }
 
+
+void EntityManager::addEntity(const Entity& entity) {
+    entities.emplace_back(entity);
+}
+
+void EntityManager::removeEntity(unsigned int id) {
+    entities.erase(entities.begin() + id);
+}
+
+void EntityManager::updateEntities(float deltaTime){
+    for (auto& entity : entities) {
+        entity.positionX += entity.velocityX * deltaTime;
+        entity.positionY += entity.velocityY * deltaTime;
+        entity.positionZ += entity.velocityZ * deltaTime;
+    }
+}
+
+const std::vector<Entity>& EntityManager::getEntities() const {
+    return entities;
+}
+
+Entity& EntityManager::getEntity(unsigned int id) {
+    return entities[id];
+}
+
 }
