@@ -12,5 +12,6 @@ target_sources(
     game.cpp
     main.cpp
     sdl_wrapper.cpp
+    vulkan_wrapper.cpp
 )
 

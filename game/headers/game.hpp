@@ -1,24 +1,23 @@
 #pragma once
 #include <chrono>
-#include "sdl_wrapper.hpp"
-#include <vulkan/vulkan.h>
+#include "vulkan_wrapper.hpp"
 
 namespace Game {
 class Game {
 private:
     bool isRunning;
     SDLWrapper::SDL sdl;
-    VkInstance vulkanInstance;
-    VkSurfaceKHR vulkanSurface;
+    VulkanWrapper::Vulkan vulkan;
     
 public:
-    Game();
+    Game(const unsigned int screenWidth, const unsigned int screenHeight);
     ~Game();
 
     void run();
     void processInput();
     void render();
     void vulkanInit();
+    void update(float elapsedTime);
 };
 
 }

@@ -61,4 +61,8 @@ SDL_Window* SDL::getWindow() const {
     return window;
 }
 
+std::pair<unsigned int, unsigned int> SDL::getWindowSize() const {
+    return std::make_pair(screenWidth, screenHeight);
+}
+
 } // namespace SDLWrapper

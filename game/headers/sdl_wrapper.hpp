@@ -20,5 +20,6 @@ public:
     SDL_Renderer* createSDLRenderer(SDL_Window *window, int index, Uint32 flags) const;
     SDL_Window* getWindow() const;
     SDL_Renderer* getRenderer() const;
+    std::pair<unsigned int, unsigned int> getWindowSize() const;
 };
 }
