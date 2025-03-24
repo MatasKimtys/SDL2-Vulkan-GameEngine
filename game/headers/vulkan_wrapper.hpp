@@ -16,11 +16,19 @@ private:
     VkRenderPass renderPass;
     VkInstance vulkanInstance;
     VkSurfaceKHR vulkanSurface;
+    VkCommandBuffer commandBuffer;
+    VkCommandPool commandPool;
+    VkPipeline graphicsPipeline;
+    VkFramebuffer framebuffer;
+    std::vector<VkFramebuffer> framebuffers;
+    std::vector<VkImageView> swapChainImageViews;
+    VkExtent2D swapChainExtent;
 
 public:
     Vulkan(SDLWrapper::SDL& sdl);
     Vulkan();
     ~Vulkan();
+    void renderTriangle();
 
 };
 }

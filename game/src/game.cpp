@@ -18,7 +18,7 @@ void Game::processInput() {
 }
 
 void Game::render() {
-    
+    vulkan.renderTriangle();
 }
 
 void Game::update(float elapsedTime) {
