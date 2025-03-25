@@ -5,13 +5,13 @@
 #include "sdl_wrapper.hpp"
 
 namespace VulkanWrapper {
+
 class Vulkan {
 private:
     VkApplicationInfo appInfo;
     VkInstanceCreateInfo createInfo;
     VkPhysicalDevice physicalDevice;
     VkDevice device;
-    VkQueue graphicsQueue;
     VkSwapchainKHR swapChain;
     VkRenderPass renderPass;
     VkInstance vulkanInstance;
@@ -22,7 +22,16 @@ private:
     VkFramebuffer framebuffer;
     std::vector<VkFramebuffer> framebuffers;
     std::vector<VkImageView> swapChainImageViews;
+    VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo;
+    VkDebugUtilsMessengerEXT debugMessenger;
+
+    VkFormat swapChainImageFormat;
     VkExtent2D swapChainExtent;
+    std::vector<const char*> extensions;
+    std::vector<VkImage> swapChainImages;
+    
+    VkQueue graphicsQueue;
+    VkQueue presentQueue;
 
 public:
     Vulkan(SDLWrapper::SDL& sdl);
