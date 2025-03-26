@@ -34,39 +34,30 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     void* pUserData
 ) {
     spdlog::debug("validation layer: {}", pCallbackData->pMessage);
-
     return VK_FALSE;
 }
 
 QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR& vulkanSurface) {
     QueueFamilyIndices indices;
-
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
-
     std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
-
     int i = 0;
     for (const auto& queueFamily : queueFamilies) {
         if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
             indices.graphicsFamily = i;
         }
-
         VkBool32 presentSupport = false;
         vkGetPhysicalDeviceSurfaceSupportKHR(device, i, vulkanSurface, &presentSupport);
-
         if (presentSupport) {
             indices.presentFamily = i;
         }
-
         if (indices.isComplete()) {
             break;
         }
-
         i++;
     }
-
     return indices;
 }
 
@@ -246,32 +237,22 @@ void createLogicalDevice(
     VkQueue& presentQueue
 ) {
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice, vulkanSurface);
-
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
     float queuePriority = 1.0f;
-    for (uint32_t queueFamily : uniqueQueueFamilies) {
-        VkDeviceQueueCreateInfo queueCreateInfo{};
-        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queueCreateInfo.queueFamilyIndex = queueFamily;
-        queueCreateInfo.queueCount = 1;
-        queueCreateInfo.pQueuePriorities = &queuePriority;
-        queueCreateInfos.push_back(queueCreateInfo);
-    }
-
     VkPhysicalDeviceFeatures deviceFeatures{};
+    VkDeviceQueueCreateInfo queueCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = indices.graphicsFamily.value(),
+        .queueCount = 1,
+        .pQueuePriorities = &queuePriority
+    };
 
-    VkDeviceCreateInfo createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
-    createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-    createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
-    createInfo.pEnabledFeatures = &deviceFeatures;
-
-    createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-    createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+    VkDeviceCreateInfo createInfo{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .queueCreateInfoCount = 1,
+        .pQueueCreateInfos = &queueCreateInfo,
+        .enabledExtensionCount = 0,
+        .pEnabledFeatures = &deviceFeatures
+    };
 
     if (enableValidationLayers) {
         createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
@@ -285,7 +266,6 @@ void createLogicalDevice(
     }
 
     vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-    vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
 }
 
 VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
@@ -321,20 +301,24 @@ void createSwapChain(
         imageCount = swapChainSupport.capabilities.maxImageCount;
     }
 
-    VkSwapchainCreateInfoKHR createInfo{};
-    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface = vulkanSurface;
-
-    createInfo.minImageCount = imageCount;
-    createInfo.imageFormat = surfaceFormat.format;
-    createInfo.imageColorSpace = surfaceFormat.colorSpace;
-    createInfo.imageExtent = extent;
-    createInfo.imageArrayLayers = 1;
-    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    VkSwapchainCreateInfoKHR createInfo{
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = vulkanSurface,
+        .minImageCount = imageCount,
+        .imageFormat = surfaceFormat.format,
+        .imageColorSpace = surfaceFormat.colorSpace,
+        .imageExtent = extent,
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .preTransform = swapChainSupport.capabilities.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode = presentMode,
+        .clipped = VK_TRUE,
+        .oldSwapchain = VK_NULL_HANDLE
+    };
 
     QueueFamilyIndices indices = findQueueFamilies(physicalDevice, vulkanSurface);
     uint32_t queueFamilyIndices[] = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
     if (indices.graphicsFamily != indices.presentFamily) {
         createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 2;
@@ -342,13 +326,6 @@ void createSwapChain(
     } else {
         createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     }
-
-    createInfo.preTransform = swapChainSupport.capabilities.currentTransform;
-    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    createInfo.presentMode = presentMode;
-    createInfo.clipped = VK_TRUE;
-
-    createInfo.oldSwapchain = VK_NULL_HANDLE;
 
     if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
         throw std::runtime_error("failed to create swap chain!");
@@ -363,29 +340,33 @@ void createSwapChain(
 }
 
 void createRenderPass(VkDevice& device, VkRenderPass& renderPass) {
-    VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = VK_FORMAT_B8G8R8A8_SRGB;
-    colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-    colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    VkAttachmentDescription colorAttachment{
+        .format = VK_FORMAT_B8G8R8A8_SRGB,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+    };
 
-    VkAttachmentReference colorAttachmentRef{};
-    colorAttachmentRef.attachment = 0;
-    colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    VkAttachmentReference colorAttachmentRef{
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
 
-    VkSubpassDescription subpass{};
-    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = 1;
-    subpass.pColorAttachments = &colorAttachmentRef;
+    VkSubpassDescription subpass{
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &colorAttachmentRef
+    };
 
-    VkRenderPassCreateInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount = 1;
-    renderPassInfo.pAttachments = &colorAttachment;
-    renderPassInfo.subpassCount = 1;
-    renderPassInfo.pSubpasses = &subpass;
+    VkRenderPassCreateInfo renderPassInfo{
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .attachmentCount = 1,
+        .pAttachments = &colorAttachment,
+        .subpassCount = 1,
+        .pSubpasses = &subpass
+    };
 
     if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
         throw std::runtime_error("Failed to create render pass!");
@@ -553,7 +534,15 @@ Vulkan::Vulkan(SDLWrapper::SDL& sdl) {
 
     spdlog::info("VulkanWrapper::Vulkan constructor called");
 
-    createVulkanInstance(appInfo, createInfo, vulkanInstance, sdl.getWindow(), validationLayers, debugCreateInfo, extensions);
+    createVulkanInstance(
+        appInfo, 
+        createInfo, 
+        vulkanInstance, 
+        sdl.getWindow(),
+        validationLayers, 
+        debugCreateInfo, 
+        extensions
+    );
 
     if (!SDL_Vulkan_CreateSurface(sdl.getWindow(), vulkanInstance, &vulkanSurface)) {
         throw std::runtime_error("Failed to create Vulkan surface!");
@@ -573,7 +562,15 @@ Vulkan::Vulkan(SDLWrapper::SDL& sdl) {
     }
     physicalDevice = pickPhysicalDevice(devices);
 
-    createLogicalDevice(physicalDevice, device, graphicsQueue, extensions, validationLayers, vulkanSurface, presentQueue);
+    createLogicalDevice(
+        physicalDevice, 
+        device, 
+        graphicsQueue, 
+        extensions, 
+        validationLayers, 
+        vulkanSurface, 
+        presentQueue
+    );
 
     const auto [screenWidth, screenHeight] = sdl.getWindowSize();
     createSwapChain(
@@ -596,7 +593,6 @@ Vulkan::Vulkan(SDLWrapper::SDL& sdl) {
 
     VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupportDetails.formats);
     VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupportDetails.presentModes);
-    VkExtent2D extent = chooseSwapExtent(swapChainSupportDetails.capabilities, screenWidth, screenHeight);
     swapChainExtent = chooseSwapExtent(capabilities, screenWidth, screenHeight);
     
     auto graphicsQueueFamilyIndex = findGraphicsQueueFamily(physicalDevice);
@@ -615,105 +611,4 @@ Vulkan::~Vulkan() {
     spdlog::info("VulkanWrapper::Vulkan destructor called");
 }
 
-void Vulkan::renderTriangle() {
-    // 1. Allocate a command buffer from the command pool.
-    VkCommandBufferAllocateInfo allocInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-        .pNext = nullptr,
-        .commandPool = commandPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .commandBufferCount = 1
-    };
-    if (vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate command buffer for rendering triangle!");
-    }
-
-    // 2. Begin recording the command buffer.
-    VkCommandBufferBeginInfo beginInfo{
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .pNext = nullptr,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-        .pInheritanceInfo = nullptr
-    };
-    if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to begin recording command buffer!");
-    }
-
-    // 3. Prepare the render pass begin info.
-    // Use a local clear value variable on the stack.
-    VkClearValue clearValue{
-        .color = {.float32 = {0.0f, 0.0f, 0.0f, 1.0f}}
-    };
-    VkRenderPassBeginInfo renderPassInfo{
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .pNext = nullptr,
-        .renderPass = renderPass,
-        .framebuffer = framebuffer, // 'framebuffer' must be valid (created during swapchain setup).
-        .renderArea = {
-            .offset = {0, 0},
-            .extent = swapChainExtent
-        },
-        .clearValueCount = 1,
-        .pClearValues = &clearValue
-    };
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-    // NOTE: Remove createFramebuffers() call here - framebuffers must be created during swapchain initialization.
-    
-    // 4. Set dynamic viewport and scissor (if your pipeline uses dynamic states)
-    VkViewport viewport{
-        .x = 0.0f,
-        .y = 0.0f,
-        .width = static_cast<float>(swapChainExtent.width),
-        .height = static_cast<float>(swapChainExtent.height),
-        .minDepth = 0.0f,
-        .maxDepth = 1.0f
-    };
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    
-    VkRect2D scissor{
-        .offset = {0, 0},
-        .extent = swapChainExtent
-    };
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    // 5. Bind the graphics pipeline.
-    // Your pipeline should include a vertex shader that generates a centered triangle
-    // (for example, using gl_VertexIndex to select vertices) and a fragment shader that outputs red.
-    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-
-    // 6. Issue a draw command to render a triangle (3 vertices, 1 instance).
-    vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-
-    // 7. End the render pass.
-    vkCmdEndRenderPass(commandBuffer);
-
-    // 8. End recording the command buffer.
-    if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to record command buffer for triangle rendering!");
-    }
-
-    // 9. Submit the command buffer to the graphics queue.
-    VkSubmitInfo submitInfo{
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pNext = nullptr,
-        .waitSemaphoreCount = 0,
-        .pWaitSemaphores = nullptr,
-        .pWaitDstStageMask = nullptr,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &commandBuffer,
-        .signalSemaphoreCount = 0,
-        .pSignalSemaphores = nullptr
-    };
-    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to submit draw command buffer!");
-    }
-
-    vkQueueWaitIdle(graphicsQueue);
-
-    // 10. Clean up the command buffer (consider reusing command buffers in production code).
-    vkFreeCommandBuffers(device, commandPool, 1, &commandBuffer);
-
-    spdlog::debug("Triangle rendered successfully!");
 }
-} // namespace VulkanWrapper

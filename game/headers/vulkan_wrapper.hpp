@@ -37,7 +37,6 @@ public:
     Vulkan(SDLWrapper::SDL& sdl);
     Vulkan();
     ~Vulkan();
-    void renderTriangle();
 
 };
 }

@@ -18,11 +18,12 @@ void Game::processInput() {
 }
 
 void Game::render() {
-    vulkan.renderTriangle();
+
 }
 
 void Game::update(float elapsedTime) {
     // Update game logic - physics, AI, game state transitions
+
 }
 
 void Game::run() {
