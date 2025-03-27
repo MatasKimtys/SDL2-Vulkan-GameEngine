@@ -7,7 +7,7 @@ class SDL {
 private:
     unsigned int screenWidth;
     unsigned int screenHeight;
-    SDL_Renderer* renderer;
+    // SDL_Renderer* renderer;
     SDL_Window* window;
     
 public:

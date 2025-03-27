@@ -16,11 +16,11 @@ SDL::SDL(unsigned int screenWidth, unsigned int screenHeight)
         screenWidth, 
         screenHeight,
         SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
-    renderer = createSDLRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    // renderer = createSDLRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 }
 
 SDL::~SDL() {
-    SDL_DestroyRenderer(renderer);
+    // SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
 }
@@ -50,10 +50,6 @@ SDL_Renderer* SDL::createSDLRenderer(SDL_Window* window, int index, Uint32 flags
         SDL_Quit();
         exit(-1);
     }
-    return renderer;
-}
-
-SDL_Renderer* SDL::getRenderer() const {
     return renderer;
 }
 

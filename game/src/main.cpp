@@ -3,7 +3,6 @@
 #include "game_engine.hpp"
 #include "../headers/game.hpp"
 
-
 int main(int, char**){
     spdlog::set_level(spdlog::level::debug);
     try {
