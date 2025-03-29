@@ -841,13 +841,13 @@ void Game::mainLoop() {
         if (event.type == SDL_QUIT) {
             running = false;
         }
-        if (event.type == SDL_WINDOWEVENT) {
-            if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-                int width = event.window.data1;
-                int height = event.window.data2;
-                framebufferResized = true;
-            }
-        }
+        // if (event.type == SDL_WINDOWEVENT) { // This does nothing?
+        //     if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
+        //         int width = event.window.data1;
+        //         int height = event.window.data2;
+        //         framebufferResized = true;
+        //     }
+        // }
         drawFrame();
     }
     vkDeviceWaitIdle(device);
