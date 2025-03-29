@@ -54,9 +54,14 @@ public:
     void run();
     Game(const uint32_t width, const uint32_t height);
 
-private:
+private: // SDL
     SDLWrapper::SDL sdl;
 
+private: // VULKAN
+    const int MAX_FRAMES_IN_FLIGHT = 2;
+    uint32_t currentFrame = 0;
+    bool framebufferResized = false;
+    
     VkInstance instance;
     VkDebugUtilsMessengerEXT debugMessenger;
     VkSurfaceKHR surface;
@@ -79,11 +84,11 @@ private:
     VkPipeline graphicsPipeline;
 
     VkCommandPool commandPool;
-    VkCommandBuffer commandBuffer;
+    std::vector<VkCommandBuffer> commandBuffers;
 
-    VkSemaphore imageAvailableSemaphore;
-    VkSemaphore renderFinishedSemaphore;
-    VkFence inFlightFence;
+    std::vector<VkSemaphore> imageAvailableSemaphores;
+    std::vector<VkSemaphore> renderFinishedSemaphores;
+    std::vector<VkFence> inFlightFences;
 
     void initWindow();
     void initVulkan();
@@ -117,6 +122,8 @@ private:
     void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
     void createSyncObjects();
     void drawFrame();
+    void recreateSwapChain();
+    void cleanupSwapChain();
 };
 
 }

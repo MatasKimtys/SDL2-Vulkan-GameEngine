@@ -15,7 +15,7 @@ SDL::SDL(unsigned int screenWidth, unsigned int screenHeight)
         SDL_WINDOWPOS_CENTERED,
         screenWidth, 
         screenHeight,
-        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN);
+        SDL_WINDOW_VULKAN | SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
     // renderer = createSDLRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 }
 
