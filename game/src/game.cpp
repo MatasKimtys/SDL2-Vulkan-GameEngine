@@ -1076,6 +1076,7 @@ void Game::initVulkan() {
     createGraphicsPipeline();
     createFramebuffers();
     createCommandPool();
+    createTextureImage();
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffers();

@@ -2,6 +2,9 @@
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 #include <chrono>
 #include <iostream>
 #include <stdexcept>
@@ -84,9 +87,9 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-    glm::mat4 model;
-    glm::mat4 view;
-    glm::mat4 proj;
+    alignas(16) glm::mat4 model;
+    alignas(16) glm::mat4 view;
+    alignas(16) glm::mat4 proj;
 };
 
 const std::vector<Vertex> vertices = {
@@ -198,6 +201,7 @@ private: // VULKAN
     void updateUniformBuffer(uint32_t currentImage);
     void createDescriptorPool();
     void createDescriptorSets();
+    void createTextureImage();
 };
 
 }
