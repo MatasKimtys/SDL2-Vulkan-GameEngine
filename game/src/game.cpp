@@ -28,6 +28,10 @@ static std::vector<char> readFile(const std::string& filename) {
 
 namespace Game {
 
+void Game::createTextureImage() {
+
+}
+
 void Game::createDescriptorSets() {
     std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
     VkDescriptorSetAllocateInfo allocInfo {

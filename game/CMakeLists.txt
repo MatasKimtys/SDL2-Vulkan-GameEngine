@@ -18,6 +18,7 @@ FetchContent_Declare(
  find_package(Vulkan REQUIRED)
 
  target_link_libraries(Game PRIVATE SDL2::SDL2main SDL2::SDL2 Vulkan::Vulkan)
-
+ 
+add_subdirectory(3rd_party)
 add_subdirectory(headers)
 add_subdirectory(src)

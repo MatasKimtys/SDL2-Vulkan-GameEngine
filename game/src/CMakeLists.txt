@@ -14,5 +14,3 @@ target_sources(
     sdl_wrapper.cpp
     vulkan_wrapper.cpp
 )
-
-# add_subdirectory(shaders)
