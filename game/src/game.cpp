@@ -1,3 +1,4 @@
+#define STB_IMAGE_IMPLEMENTATION
 #include "../headers/game.hpp"
 #include <chrono>
 #include <thread>

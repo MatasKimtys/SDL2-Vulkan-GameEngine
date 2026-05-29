@@ -42,9 +42,15 @@ if(WIN32)
             "$<TARGET_FILE:SDL2::SDL2>"
             "$<TARGET_FILE_DIR:Game>"
         COMMENT "Copying SDL2.dll to the output directory"
-        COMMENT "Copying SDL2.dll to the output directory"
     )
  endif()
 
 add_subdirectory(game_engine)
 add_subdirectory(game)
+
+add_custom_command(TARGET Game POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:Game>/shaders"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_BINARY_DIR}/game/src/shaders/vert1.spv" "$<TARGET_FILE_DIR:Game>/shaders/vert1.spv"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_BINARY_DIR}/game/src/shaders/frag1.spv" "$<TARGET_FILE_DIR:Game>/shaders/frag1.spv"
+    COMMENT "Copying compiled shaders to the output directory"
+)
