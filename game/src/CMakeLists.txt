@@ -11,6 +11,7 @@ target_sources(
     PUBLIC 
     game.cpp
     main.cpp
+    server_world.cpp
     sdl_wrapper.cpp
     vulkan_wrapper.cpp
 )

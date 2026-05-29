@@ -17,6 +17,8 @@
 #include <set>
 #include <array>
 
+#include "game_state.hpp"
+#include "server_world.hpp"
 #include "vulkan_wrapper.hpp"
 
 namespace Game {
@@ -86,9 +88,12 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-    alignas(16) glm::mat4 model;
     alignas(16) glm::mat4 view;
     alignas(16) glm::mat4 proj;
+};
+
+struct PushConstantObject {
+    alignas(16) glm::mat4 model;
 };
 
 const std::vector<Vertex> vertices = {
@@ -109,6 +114,16 @@ public:
 
 private: // SDL
     SDLWrapper::SDL sdl;
+
+private: // GAMEPLAY
+    ServerWorld serverWorld;
+    PlayerId localPlayerId = 0;
+    uint64_t localInputTick = 0;
+    ClientWorldView clientWorldView;
+    Camera camera;
+    InputState inputState;
+    float fixedDeltaTime = 1.0f / 120.0f;
+    float simulationAccumulator = 0.0f;
 
 private: // VULKAN
     const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -159,6 +174,15 @@ private: // VULKAN
     void initWindow();
     void initVulkan();
     void mainLoop();
+    void pollInput();
+    void update(float deltaTime);
+    void updateSimulation();
+    void updateCamera();
+    void applyWorldSnapshot(const WorldSnapshot& snapshot);
+    const ClientPlayerView* findPlayerView(PlayerId playerId) const;
+    float getInterpolationAlpha() const;
+    Transform interpolateTransform(const Transform& previous, const Transform& current, float alpha) const;
+    glm::mat4 createModelMatrix(const Transform& transform) const;
     void cleanup();
     void createInstance();
     void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);

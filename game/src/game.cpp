@@ -4,6 +4,7 @@
 #include <thread>
 #include <iostream>
 #include <fstream>
+#include <cmath>
 
 namespace {
 
@@ -87,14 +88,21 @@ void Game::createDescriptorPool() {
 }
 
 void Game::updateUniformBuffer(uint32_t currentImage) {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+    const ClientPlayerView* localPlayer = findPlayerView(localPlayerId);
+    float interpolationAlpha = getInterpolationAlpha();
+    Transform localPlayerTransform = localPlayer
+        ? interpolateTransform(localPlayer->previousTransform, localPlayer->currentTransform, interpolationAlpha)
+        : Transform{};
+    glm::vec3 cameraTarget = localPlayerTransform.position;
+    glm::vec3 cameraDirection {
+        std::cos(camera.pitch) * std::cos(camera.yaw),
+        std::cos(camera.pitch) * std::sin(camera.yaw),
+        std::sin(camera.pitch)
+    };
+    glm::vec3 cameraPosition = cameraTarget - cameraDirection * camera.distance;
 
     UniformBufferObject ubo{
-        .model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-        .view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+        .view = glm::lookAt(cameraPosition, cameraTarget, glm::vec3(0.0f, 0.0f, 1.0f)),
         .proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f)
     };
     ubo.proj[1][1] *= -1;
@@ -385,7 +393,22 @@ void Game::recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageInde
     vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
     vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
     vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
-    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+
+    for (const auto& player : clientWorldView.players) {
+        Transform renderTransform = interpolateTransform(player.previousTransform, player.currentTransform, getInterpolationAlpha());
+        PushConstantObject pushConstants{
+            .model = createModelMatrix(renderTransform)
+        };
+        vkCmdPushConstants(
+            commandBuffer,
+            pipelineLayout,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            sizeof(PushConstantObject),
+            &pushConstants
+        );
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+    }
     vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
@@ -641,10 +664,17 @@ void Game::createGraphicsPipeline() {
         .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
         .pDynamicStates = dynamicStates.data()
     };
+    VkPushConstantRange pushConstantRange {
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+        .offset = 0,
+        .size = sizeof(PushConstantObject)
+    };
     VkPipelineLayoutCreateInfo pipelineLayoutInfo {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount = 1,
-        .pSetLayouts = &descriptorSetLayout
+        .pSetLayouts = &descriptorSetLayout,
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges = &pushConstantRange
     };
 
     if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
@@ -1130,21 +1160,131 @@ void Game::cleanup() {
     vkDestroyInstance(instance, nullptr);
 }
 
+void Game::pollInput() {
+    const uint8_t* keyboardState = SDL_GetKeyboardState(nullptr);
+    SDL_GetRelativeMouseState(&inputState.mouseDeltaX, &inputState.mouseDeltaY);
+
+    inputState.moveUp = keyboardState[SDL_SCANCODE_W] || keyboardState[SDL_SCANCODE_UP];
+    inputState.moveDown = keyboardState[SDL_SCANCODE_S] || keyboardState[SDL_SCANCODE_DOWN];
+    inputState.moveLeft = keyboardState[SDL_SCANCODE_A] || keyboardState[SDL_SCANCODE_LEFT];
+    inputState.moveRight = keyboardState[SDL_SCANCODE_D] || keyboardState[SDL_SCANCODE_RIGHT];
+}
+
+void Game::updateSimulation() {
+    serverWorld.submitInput({
+        .playerId = localPlayerId,
+        .clientTick = localInputTick++,
+        .input = inputState
+    });
+    serverWorld.tick(fixedDeltaTime);
+}
+
+void Game::updateCamera() {
+    camera.yaw -= inputState.mouseDeltaX * camera.mouseSensitivity;
+    camera.pitch -= inputState.mouseDeltaY * camera.mouseSensitivity;
+    camera.pitch = std::clamp(camera.pitch, glm::radians(-80.0f), glm::radians(80.0f));
+}
+
+void Game::applyWorldSnapshot(const WorldSnapshot& snapshot) {
+    clientWorldView.latestServerTick = snapshot.serverTick;
+
+    for (const auto& playerSnapshot : snapshot.players) {
+        auto view = std::find_if(
+            clientWorldView.players.begin(),
+            clientWorldView.players.end(),
+            [playerId = playerSnapshot.playerId](const ClientPlayerView& playerView) {
+                return playerView.playerId == playerId;
+            }
+        );
+
+        if (view == clientWorldView.players.end()) {
+            clientWorldView.players.push_back({
+                .playerId = playerSnapshot.playerId,
+                .previousTransform = playerSnapshot.transform,
+                .currentTransform = playerSnapshot.transform
+            });
+        } else {
+            view->previousTransform = view->currentTransform;
+            view->currentTransform = playerSnapshot.transform;
+        }
+    }
+}
+
+const ClientPlayerView* Game::findPlayerView(PlayerId playerId) const {
+    auto view = std::find_if(
+        clientWorldView.players.begin(),
+        clientWorldView.players.end(),
+        [playerId](const ClientPlayerView& playerView) {
+            return playerView.playerId == playerId;
+        }
+    );
+
+    if (view == clientWorldView.players.end()) {
+        return nullptr;
+    }
+    return &(*view);
+}
+
+float Game::getInterpolationAlpha() const {
+    if (fixedDeltaTime <= 0.0f) {
+        return 0.0f;
+    }
+    return std::clamp(simulationAccumulator / fixedDeltaTime, 0.0f, 1.0f);
+}
+
+Transform Game::interpolateTransform(const Transform& previous, const Transform& current, float alpha) const {
+    return {
+        .position = glm::mix(previous.position, current.position, alpha),
+        .rotation = glm::mix(previous.rotation, current.rotation, alpha),
+        .scale = glm::mix(previous.scale, current.scale, alpha)
+    };
+}
+
+glm::mat4 Game::createModelMatrix(const Transform& transform) const {
+    glm::mat4 model = glm::translate(glm::mat4(1.0f), transform.position);
+    model = glm::rotate(model, transform.rotation.x, glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, transform.rotation.y, glm::vec3(0.0f, 1.0f, 0.0f));
+    model = glm::rotate(model, transform.rotation.z, glm::vec3(0.0f, 0.0f, 1.0f));
+    return glm::scale(model, transform.scale);
+}
+
+void Game::update(float deltaTime) {
+    simulationAccumulator += deltaTime;
+    while (simulationAccumulator >= fixedDeltaTime) {
+        updateSimulation();
+        applyWorldSnapshot(serverWorld.createSnapshot());
+        simulationAccumulator -= fixedDeltaTime;
+    }
+
+    updateCamera();
+}
+
 void Game::mainLoop() {
     bool running = true;
     SDL_Event event;
 
-    while (SDL_PollEvent(&event) or running) {
-        if (event.type == SDL_QUIT) {
-            running = false;
+    auto previousTime = std::chrono::high_resolution_clock::now();
+
+    while (running) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                running = false;
+            }
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE) {
+                running = false;
+            }
+            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_RESIZED) {
+                framebufferResized = true;
+            }
         }
-        // if (event.type == SDL_WINDOWEVENT) { // This does nothing?
-        //     if (event.window.event == SDL_WINDOWEVENT_RESIZED) {
-        //         int width = event.window.data1;
-        //         int height = event.window.data2;
-        //         framebufferResized = true;
-        //     }
-        // }
+
+        auto currentTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentTime - previousTime).count();
+        previousTime = currentTime;
+        deltaTime = std::min(deltaTime, 0.25f);
+
+        pollInput();
+        update(deltaTime);
         drawFrame();
     }
     vkDeviceWaitIdle(device);
@@ -1153,12 +1293,16 @@ void Game::mainLoop() {
 void Game::run() {
     initWindow();
     initVulkan();
+    SDL_SetRelativeMouseMode(SDL_TRUE);
     mainLoop();
+    SDL_SetRelativeMouseMode(SDL_FALSE);
     cleanup();
 }
 
 Game::Game(const uint32_t width = 1920, const uint32_t height = 1080) : sdl(width, height) {
-
+    localPlayerId = serverWorld.createPlayer();
+    serverWorld.createPlayer({1.5f, 0.0f, 0.0f});
+    applyWorldSnapshot(serverWorld.createSnapshot());
 }
 
 

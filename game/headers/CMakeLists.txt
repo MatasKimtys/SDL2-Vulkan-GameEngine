@@ -4,6 +4,8 @@ target_sources(
     GameHeaders 
     PUBLIC 
     game.hpp
+    game_state.hpp
+    server_world.hpp
     sdl_wrapper.hpp
     vulkan_wrapper.hpp
 )
